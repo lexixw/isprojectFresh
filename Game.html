@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Fantasy Trail Expanded</title>
+<style>
+  body {
+    font-family: 'Trebuchet MS', sans-serif;
+    background: linear-gradient(#d8c7ff, #fce3ff);
+    padding: 20px;
+  }
+
+  #gameBox {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  }
+
+  button {
+    padding: 10px 20px;
+    margin: 10px 5px;
+    border: none;
+    border-radius: 10px;
+    background: #b57bff;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  #map {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f7ecff;
+    border-radius: 10px;
+  }
+</style>
+</head>
+<body>
+<div id="gameBox">
+  <nav style="margin-bottom:15px;">
+    <a href="Resume.html" style="margin-right:15px; font-weight:bold; text-decoration:none; color:#8247e5;">📄 Resume</a>
+    <a href="index.html" style="font-weight:bold; text-decoration:none; color:#8247e5;">💃 Dance Page</a>
+  </nav>
+  <h1>🐉 Fantasy Trail</h1>
+  <div id="map">Map: <span id="location">Start</span></div>
+  <div id="output">Welcome, traveler. Your dragon-drawn 2000s-style trailer awaits.</div>
+  <button onclick="startGame()">Begin Your Journey</button>
+  <div id="choices"></div>
+</div>
+
+<script>
+let hp = 100;
+let food = 30;
+let money = 20;
+let potions = 3;
+let levPotions = 2;
+let armor = 0;
+let day = 0;
+let locationName = "Start";
+
+function updateMap(name){
+  locationName = name;
+  document.getElementById('location').innerText = locationName;
+}
+
+function render(text, buttons=[]) {
+  document.getElementById('output').innerHTML = text;
+  const c = document.getElementById('choices');
+  c.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.innerText = b.label;
+    btn.onclick = b.action;
+    c.appendChild(btn);
+  });
+}
+
+function startGame() {
+  day = 1;
+  updateMap("Crossroads");
+  render(`Day ${day}: You arrive at the great Crossroads. Three trails lie ahead.`, [
+    {label:'Forest Trail', action:()=>chooseTrail('forest')},
+    {label:'Mountain Trail', action:()=>chooseTrail('mountain')},
+    {label:'Swamp Trail', action:()=>chooseTrail('swamp')},
+    {label:'Check supplies', action: checkSupplies}
+  ]);
+}
+
+function chooseTrail(type){
+  updateMap(type.charAt(0).toUpperCase()+type.slice(1)+" Trail");
+  render(`You take the ${type} trail. Dragons rumble with anticipation.`,[
+    {label:'Travel forward', action: travel},
+    {label:'Visit Store', action: store},
+    {label:'Check supplies', action: checkSupplies}
+  ]);
+}
+
+function checkSupplies(){
+  render(`HP: ${hp}<br>Food: ${food}<br>Money: ${money}<br>Armor: ${armor}<br>Healing Potions: ${potions}<br>Levitation Potions: ${levPotions}`,[
+    {label: 'Back', action: ()=>chooseTrail(locationName.split(" ")[0].toLowerCase())}
+  ]);
+}
+
+function store(){
+  render(`A traveling merchant greets you: "Care to browse?"`,[
+    {label:'Buy Food (5g)', action:()=>buy('food')},
+    {label:'Buy Potion (10g)', action:()=>buy('potion')},
+    {label:'Buy Levitation Potion (15g)', action:()=>buy('lev')},
+    {label:'Buy Armor (25g)', action:()=>buy('armor')},
+    {label:'Back', action: ()=>chooseTrail(locationName.split(" ")[0].toLowerCase())}
+  ]);
+}
+
+function buy(item){
+  if(item==='food' && money>=5){ money-=5; food+=10; }
+  else if(item==='potion' && money>=10){ money-=10; potions++; }
+  else if(item==='lev' && money>=15){ money-=15; levPotions++; }
+  else if(item==='armor' && money>=25){ money-=25; armor+=10; }
+  else{
+    render(`You cannot afford that!`,[{label:'Back', action:store}]);
+    return;
+  }
+  render(`Purchase successful!`,[{label:'Back', action:store}]);
+}
+
+function travel(){
+  day++;
+  const event = Math.random();
+
+  if(event < 0.25){ renderPitEvent(); return; }
+  if(event < 0.5){ renderMonsterEvent(); return; }
+  if(event < 0.7){
+    food -= 3;
+    render(`Day ${day}: Calm skies. (-3 food)`,[
+      {label:'Continue', action:travel},
+      {label:'Check supplies', action:checkSupplies}
+    ]);
+    return;
+  }
+  if(event < 0.9){
+    let gold = Math.floor(Math.random()*8)+3;
+    money += gold;
+    render(`Day ${day}: You find coins on an old altar! (+${gold} gold)`,[
+      {label:'Continue', action:travel},
+      {label:'Check supplies', action:checkSupplies}
+    ]);
+    return;
+  }
+
+  food += 5;
+  render(`Day ${day}: Wild berries! (+5 food)`,[
+    {label:'Continue', action:travel},
+    {label:'Check supplies', action:checkSupplies}
+  ]);
+}
+
+function renderPitEvent(){
+  render(`A chasm splits the path!`,[
+    {label:'Use levitation potion', action:()=>{
+      if(levPotions>0){
+        levPotions--;
+        render(`You drift across safely. (-1 levitation potion)`,[{label:'Continue', action:travel}]);
+      } else {
+        hp -= 20;
+        render(`You fall and cling desperately! (-20 HP)`,[{label:'Continue', action:travel}]);
+      }
+    }},
+    {label:'Attempt a jump', action:()=>{
+      if(Math.random()<0.4){
+        render(`A clean jump!`,[{label:'Continue', action:travel}]);
+      } else {
+        hp -= 30 - armor;
+        render(`You crash into the cliff! (-${30-armor} HP)`,[{label:'Continue', action:travel}]);
+      }
+    }}
+  ]);
+}
+
+function renderMonsterEvent(){
+  render(`A forest spirit ambushes you!`,[
+    {label:'Use healing potion', action:()=>{
+      if(potions>0){ potions--; hp+=20; }
+      render(`You brace yourself...`,[{label:'Fight', action: fightSpirit}]);
+    }},
+    {label:'Fight immediately', action: fightSpirit}
+  ]);
+}
+
+function fightSpirit(){
+  if(Math.random()<0.6){
+    let reward = Math.floor(Math.random()*6)+4;
+    money+=reward;
+    render(`You defeat the spirit! (+${reward} gold)`,[{label:'Continue', action: travel}]);
+  } else {
+    let dmg = 25 - armor;
+    if(dmg<5) dmg=5;
+    hp -= dmg;
+    render(`The spirit wounds you before vanishing! (-${dmg} HP)`,[{label:'Continue', action: travel}]);
+  }
+}
+</script>
+</body>
+</html>
